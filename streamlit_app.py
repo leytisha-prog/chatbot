@@ -1,56 +1,170 @@
 import streamlit as st
-from openai import OpenAI
 
-# Show title and description.
-st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+st.set_page_config(
+    page_title="AI Configuration Explorer",
+    page_icon="🧠",
+    layout="wide"
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+st.title("🧠 AI Configuration Explorer")
+st.write("Explore how AI settings affect the code, simulated output, and instructional design decisions.")
+
+# -----------------------------
+# Sidebar / Configuration Panel
+# -----------------------------
+st.sidebar.header("1. AI Configuration")
+
+model = st.sidebar.selectbox(
+    "Model",
+    ["Gemini Flash", "Gemini Pro", "Claude Sonnet", "GPT-4o"]
+)
+
+temperature = st.sidebar.slider(
+    "Temperature",
+    min_value=0.0,
+    max_value=1.5,
+    value=0.3,
+    step=0.1
+)
+
+thinking_level = st.sidebar.selectbox(
+    "Thinking Level",
+    ["Low", "Medium", "High"],
+    index=1
+)
+
+system_instruction = st.sidebar.selectbox(
+    "System Instruction",
+    [
+        "You are an instructional designer.",
+        "You are a creative storyteller.",
+        "You are a college professor.",
+        "You are a multimedia learning coach."
+    ]
+)
+
+prompt = st.sidebar.text_area(
+    "User Prompt",
+    "Create a storyboard for an online cybersecurity lesson.",
+    height=120
+)
+
+# -----------------------------
+# Simulated logic
+# -----------------------------
+if "Flash" in model:
+    model_effect = "fast, concise, and practical"
+elif "Pro" in model:
+    model_effect = "detailed, structured, and more analytical"
+elif "Claude" in model:
+    model_effect = "reflective, polished, and strong for writing"
 else:
+    model_effect = "flexible, conversational, and multimodal"
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+if temperature < 0.4:
+    temp_effect = "structured, predictable, and consistent"
+    activity = "a checklist-based activity"
+elif temperature < 0.9:
+    temp_effect = "balanced, clear, and moderately creative"
+    activity = "a short scenario-based activity"
+else:
+    temp_effect = "creative, varied, and imaginative"
+    activity = "a role-play or escape-room style activity"
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+if thinking_level == "Low":
+    thinking_effect = "quick and simple, with limited explanation"
+elif thinking_level == "Medium":
+    thinking_effect = "moderately detailed, with some reasoning"
+else:
+    thinking_effect = "more detailed, reflective, and analytical"
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+if "instructional designer" in system_instruction.lower():
+    system_effect = "learning objectives, sequencing, practice, and assessment"
+elif "storyteller" in system_instruction.lower():
+    system_effect = "characters, conflict, narrative flow, and emotional engagement"
+elif "professor" in system_instruction.lower():
+    system_effect = "formal explanation, academic language, and lecture structure"
+else:
+    system_effect = "visual design, media selection, and multimedia learning principles"
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+# -----------------------------
+# Main layout
+# -----------------------------
+col1, col2 = st.columns(2)
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+with col1:
+    st.subheader("2. Python Configuration View")
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+    code = f'''model = "{model}"
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+temperature = {temperature}
+
+thinking_level = "{thinking_level}"
+
+system_instruction = """
+{system_instruction}
+"""
+
+prompt = """
+{prompt}
+"""
+
+response = generate_ai_output(
+    model=model,
+    temperature=temperature,
+    thinking_level=thinking_level,
+    system_instruction=system_instruction,
+    prompt=prompt
+)
+'''
+    st.code(code, language="python")
+
+with col2:
+    st.subheader("3. Simulated AI Output")
+
+    output = f"""
+The selected model would likely produce a response that is **{model_effect}**.
+
+Because the temperature is **{temperature}**, the output would be **{temp_effect}**.
+
+Because the thinking level is **{thinking_level}**, the response would be **{thinking_effect}**.
+
+Because the system instruction says:
+
+> {system_instruction}
+
+The response would emphasize **{system_effect}**.
+
+### Possible AI-generated storyboard
+
+1. Opening: Introduce the cybersecurity problem.
+2. Objective: Explain what learners should know or do.
+3. Content: Present the key concept.
+4. Activity: Include **{activity}**.
+5. Assessment: Add a short knowledge check.
+6. Reflection: Ask learners how they would apply this in real life.
+"""
+    st.markdown(output)
+
+st.divider()
+
+st.subheader("4. Educational Implication")
+
+st.info(
+    "For instructional designers, these settings are design decisions. "
+    "The model affects depth and style. Temperature affects creativity and consistency. "
+    "Thinking level affects reasoning and explanation. System instructions shape the role "
+    "the AI plays in the learning experience. The user prompt defines the task the AI is expected to complete."
+)
+
+st.subheader("5. Student Reflection")
+
+st.write("""
+Ask students:
+
+1. Which setting changed the output the most?
+2. Which setting would matter most in an AI tutoring system?
+3. When would a low temperature be better for learning?
+4. When would a high temperature be useful?
+5. How do system instructions influence the learner experience?
+""")
